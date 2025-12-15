@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Grid Boxes</title>
+    <style>
+        /* Reset dan setup dasar untuk fullscreen */
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Container grid 3x2 fullscreen */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 3 kolom */
+            grid-template-rows: repeat(2, 1fr); /* 2 baris */
+            gap: 20px; /* Jarak antar kotak */
+            width: 90vw; /* Lebar responsif */
+            height: 90vh; /* Tinggi responsif */
+            max-width: 1200px; /* Batas maksimal */
+        }
+
+        /* Styling kotak */
+        .box {
+            background-color: #4CAF50; /* Warna hijau modern */
+            border-radius: 15px; /* Sudut membulat */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Bayangan */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease; /* Transisi halus untuk semua perubahan */
+            position: relative;
+            overflow: hidden; /* Untuk efek ripple jika diperlukan */
+            text-aling: center;
+        }
+
+        /* Hover effect: kotak membesar sedikit */
+        .box:hover {
+            transform: scale(1.05);
+        }
+
+        /* Status clicked: warna abu-abu */
+        .box.clicked {
+            background-color: #9E9E9E; /* Abu-abu */
+        }
+
+        /* Efek klik: scale untuk simulasi ripple */
+        .box:active {
+            transform: scale(0.95);
+        }
+
+        /* Efek ripple sederhana (opsional, menggunakan pseudo-element) */
+        .box::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .box.ripple::before {
+            width: 300px;
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-container">
+        <div class="box" id="box1">Matematika</div>
+        <div class="box" id="box2">Geografi</div>
+        <div class="box" id="box3">Kearifan Lokal</div>
+        <div class="box" id="box4">Biologi</div>
+        <div class="box" id="box5">Ekonomi</div>
+        <div class="box" id="box6">Agama</div>
+    </div>
+
+    <script>
+        // Fungsi untuk menyimpan status kotak ke localStorage
+      
+
+        // Tambahkan event listener untuk setiap kotak
+        for (let i = 1; i <= 6; i++) {
+            const box = document.getElementById(`box${i}`);
+            box.addEventListener('click', function() {
+                // Toggle class clicked
+                this.classList.toggle('clicked');
+                
+                // Efek ripple sederhana
+                this.classList.add('ripple');
+                setTimeout(() => {
+                    this.classList.remove('ripple');
+                }, 600); // Durasi sesuai transisi
+                
+                // Simpan status
+                saveState();
+            });
+        }
+
+        // Muat status saat halaman dimuat
+        window.addEventListener('load', loadState);
+    </script>
+</body>
+</html>

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lomba Cerdas Cermat</title>
+    <style>
+        /* CSS tetap sama seperti sebelumnya */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            overflow: scroll;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .fs {
+          height: 100vh;
+          align-content: center;
+        }
+
+        .timer {
+            text-align: center;
+            font-size: 10rem;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #ffeb3b;
+        }
+
+        .teams {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .team {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            min-width: 20vw;
+            min-height: 15vh;
+            transition: all 0.3s ease;
+            align-content: center;
+        }
+
+        .team.active {
+            border-color: #ffeb3b;
+            box-shadow: 0 0 20px #ffeb3b;
+        }
+
+        .team-name {
+            font-size: 4rem;
+            margin-bottom: 10px;
+        }
+
+        .score {
+            font-size: 2rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 3vh 1vw;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        button {
+            padding: 1vh 1vw;
+            font-size: 2rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .btn-team {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-team:hover {
+            background: #45a049;
+        }
+
+        .btn-correct {
+            background: #2196f3;
+            color: white;
+        }
+
+        .btn-correct:hover {
+            background: #1976d2;
+        }
+
+        .btn-correct:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-wrong {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-wrong:hover {
+            background: #d32f2f;
+        }
+
+        .btn-wrong:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-timer, .btn-lempar {
+            background: #9c27b0;
+            color: white;
+        }
+
+        .btn-timer:hover, .btn-lempar:hover{
+            background: #7b1fa2;
+        }
+
+        .btn-next, .btn-prev{
+            background: #ff9800;
+            color: white;
+        }
+
+        .btn-next:hover, .btn-prev:hover {
+            background: #e68900;
+        }
+
+        .btn-reset {
+            background: #607d8b;
+            color: white;
+            margin-top: 20px;
+        }
+
+        .btn-reset:hover {
+            background: #546e7a;
+        }
+
+        .scoreboard {
+            padding: 20px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .scoreboard h2 {
+            margin-bottom: 20px;
+        }
+
+        .score-table {
+            display: table;
+            margin: 0 auto;
+            border-collapse: collapse;
+        }
+
+        .score-table th, .score-table td {
+            padding: 10px;
+            border: 1px solid white;
+        }
+
+        @media (max-width: 768px) {
+            .teams {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .timer {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="slide1">
+          <div class="fs">
+            <div class="timer" id="timer">10</div>
+            <div class="teams" id="teams"></div>
+            <div class="controls" id="controls"></div>
+          </div>
+            <div class="scoreboard">
+                <h2>Scoreboard</h2>
+                <table class="score-table">
+                    <thead>
+                        <tr>
+                            <th>Tim</th>
+                            <th>Skor Babak</th>
+                            <th>Skor Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scoreTableBody"></tbody>
+                </table>
+                <button id="btnReset" class="btn-reset" onclick="resetTotalScores()">Reset Total Scores</button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="beepSound" src="assets/beep.mp3"></audio>
+    <audio id="correctSound" src="assets/benar.mp3"></audio>
+    <audio id="wrongSound" src="assets/salah.mp3"></audio>
+
+    <script>
+        // JavaScript dengan modifikasi
+
+        const allTeams = 'ABCDEFGHI'.split(''); // Semua tim A-I
+        const rounds = [
+            ['A', 'B', 'C'],
+            ['D', 'E', 'F'],
+            ['G', 'H', 'I'],
+            []
+        ];
+
+        let currentRound = 0;
+        let currentTeams = rounds[currentRound];
+        let roundScores = {};
+        let totalScores = {};
+        let activeTeam = null;
+        let timerInterval = null;
+        let timeLeft = 10;
+        let timerStarted = false;
+
+        const timerEl = document.getElementById('timer');
+        const teamsEl = document.getElementById('teams');
+        const controlsEl = document.getElementById('controls');
+        const scoreTableBody = document.getElementById('scoreTableBody');
+        const beepSound = document.getElementById('beepSound');
+        const correctSound = document.getElementById('correctSound');
+        const wrongSound = document.getElementById('wrongSound');
+
+        let btnCorrect, btnWrong, btnTimer;
+
+        function loadTotalScores() {
+            const stored = localStorage.getItem('totalScores');
+            if (stored) {
+                totalScores = JSON.parse(stored);
+            } else {
+                allTeams.forEach(team => totalScores[team] = 0);
+            }
+        }
+
+        function saveTotalScores() {
+            localStorage.setItem('totalScores', JSON.stringify(totalScores));
+        }
+
+        function resetRoundScores() {
+            roundScores = {};
+            currentTeams.forEach(team => roundScores[team] = 0);
+        }
+
+        function determineFinalTeams() {
+            const topFromRound1 = getTopTeam(rounds[0]);
+            const topFromRound2 = getTopTeam(rounds[1]);
+            const topFromRound3 = getTopTeam(rounds[2]);
+            rounds[3] = [topFromRound1, topFromRound2, topFromRound3];
+        }
+
+        function getTopTeam(teams) {
+            let topTeam = teams[0];
+            let topScore = totalScores[topTeam];
+            teams.forEach(team => {
+                if (totalScores[team] > topScore) {
+                    topScore = totalScores[team];
+                    topTeam = team;
+                }
+            });
+            return topTeam;
+        }
+
+        function renderTeams() {
+            teamsEl.innerHTML = '';
+            currentTeams.forEach(team => {
+                const teamDiv = document.createElement('div');
+                teamDiv.className = 'team';
+                teamDiv.id = `team-${team}`;
+                teamDiv.innerHTML = `
+                    <div class="team-name">Tim ${team}</div>
+                    <div class="score">Skor Sesi: ${roundScores[team] || 0}</div>
+                `;
+                teamsEl.appendChild(teamDiv);
+            });
+        }
+
+        function renderControls() {
+            controlsEl.innerHTML = '';
+            // Tombol Start Timer
+            btnTimer = document.createElement('button');
+            btnTimer.className = 'btn-timer';
+            btnTimer.textContent = 'Start Timer';
+            btnTimer.onclick = () => startTimer();
+            controlsEl.appendChild(btnTimer);
+            // Tombol pilih tim
+            currentTeams.forEach(team => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-team';
+                btn.textContent = `Tim ${team}`;
+                btn.onclick = () => selectTeam(team);
+                controlsEl.appendChild(btn);
+            });
+            // Tombol Benar (disabled by default)
+            btnCorrect = document.createElement('button');
+            btnCorrect.className = 'btn-correct';
+            btnCorrect.textContent = 'Benar';
+            btnCorrect.disabled = true;
+            btnCorrect.onclick = () => handleCorrect();
+            controlsEl.appendChild(btnCorrect);
+            // Tombol Salah (disabled by default)
+            btnWrong = document.createElement('button');
+            btnWrong.className = 'btn-wrong';
+            btnWrong.textContent = 'Salah';
+            btnWrong.disabled = true;
+            btnWrong.onclick = () => handleWrong();
+            controlsEl.appendChild(btnWrong);
+            // Tombol Next Sesi
+            if (currentRound > 0 ) {
+                const btnPrevRound = document.createElement('button');
+                btnPrevRound.className = 'btn-prev';
+                btnPrevRound.textContent = 'Sesi Sebelumnya';
+                btnPrevRound.onclick = () => prevRound();
+                controlsEl.appendChild(btnPrevRound);
+            }
+            if (currentRound < 3) {
+                const btnNextRound = document.createElement('button');
+                btnNextRound.className = 'btn-next';
+                btnNextRound.textContent = 'Next Sesi';
+                btnNextRound.onclick = () => nextRound();
+                controlsEl.appendChild(btnNextRound);
+            }
+            const btnLempar = document.createElement('button');
+                btnLempar.className = 'btn-lempar';
+                btnLempar.textContent = 'babak lempar';
+                btnLempar.onclick = () => window.open('lempar.html');
+                controlsEl.appendChild(btnLempar);
+        }
+
+        function selectTeam(team) {
+            if (!timerStarted) return;
+            if (activeTeam) {
+                document.getElementById(`team-${activeTeam}`).classList.remove('active');
+            }
+            activeTeam = team;
+            document.getElementById(`team-${team}`).classList.add('active');
+            btnCorrect.disabled = false;
+            btnWrong.disabled = false;
+        }
+
+        function startTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            timerStarted = true;
+            timeLeft = 10;
+            timerEl.textContent = timeLeft;
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    beepSound.play();
+                }
+            }, 1000);
+        }
+
+        function handleCorrect() {
+            if (activeTeam && timerStarted) {
+                correctSound.play();
+                clearInterval(timerInterval);
+                roundScores[activeTeam] += 100;
+                totalScores[activeTeam] += 100;
+                saveTotalScores();
+                updateTeamScore(activeTeam);
+                renderScoreboard();
+            }
+        }
+
+        function handleWrong() {
+            if (activeTeam && timerStarted) {
+                clearInterval(timerInterval);
+                roundScores[activeTeam] -= 50;
+                totalScores[activeTeam] -= 50;
+                saveTotalScores();
+                updateTeamScore(activeTeam);
+                renderScoreboard();
+                wrongSound.play();
+            }
+        }
+
+        function updateTeamScore(team) {
+            const teamEl = document.getElementById(`team-${team}`);
+            if (teamEl) {
+                teamEl.querySelector('.score').textContent = `Skor Sesi: ${roundScores[team]}`;
+            }
+        }
+
+        function renderScoreboard() {
+            scoreTableBody.innerHTML = '';
+            allTeams.forEach(team => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>Tim ${team}</td>
+                    <td>${roundScores[team] || 0}</td>
+                    <td>${totalScores[team]}</td>
+                `;
+                scoreTableBody.appendChild(row);
+            });
+        }
+
+        function resetTotalScores() {
+            allTeams.forEach(team => totalScores[team] = 0);
+            saveTotalScores();
+            renderScoreboard();
+        }
+
+        function nextRound() {
+            currentRound++;
+            if (currentRound === 3) {
+                determineFinalTeams();
+            }
+            currentTeams = rounds[currentRound];
+            resetRoundScores();
+            renderTeams();
+            renderControls();
+            renderScoreboard();
+            clearInterval(timerInterval);
+            timerStarted = false;
+            activeTeam = null;
+            timeLeft = 10;
+            timerEl.textContent = '10';
+        }
+        function prevRound() {
+            currentRound--;
+            currentTeams = rounds[currentRound];
+            resetRoundScores();
+            renderTeams();
+            renderControls();
+            renderScoreboard();
+            clearInterval(timerInterval);
+            timerStarted = false;
+            activeTeam = null;
+            timeLeft = 10;
+            timerEl.textContent = '10';
+        }
+        
+
+        function requestFullscreen() {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            }
+        }
+
+        function init() {
+            loadTotalScores();
+            resetRoundScores();
+            renderTeams();
+            renderControls();
+            renderScoreboard();
+            requestFullscreen();
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
